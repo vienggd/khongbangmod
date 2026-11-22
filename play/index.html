@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Athiti:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>Bike Tour at Klong Bang Mot</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="wrap">
+      <canvas id="c"></canvas>
+      <div class="hud hidden" id="hud"><span id="hl"></span><span id="hr"></span></div>
+      <div class="arrows hidden" id="arrows">
+        <button id="bl">
+          <img draggable="false" src="assets/game/arrow.png" style="transform: scaleX(-1)" /></button
+        ><button id="br"><img draggable="false" src="assets/game/arrow.png" /></button>
+      </div>
+      <div class="box off" id="box">
+        <div id="txt"></div>
+        <div style="text-align: right; margin-top: 8px"><button id="next">ถัดไป</button></div>
+      </div>
+      <div id="ctl">
+        <button id="gear" title="ตั้งค่า">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"
+              transform="translate(-1 0)"
+            />
+          </svg></button
+        ><span id="pbtn" class="gone" hidden></span>
+      </div>
+      <div id="fade"></div>
+      <div class="ov off" id="pm">
+        <div class="card">
+          <h1 id="pmt">หยุดชั่วคราว</h1>
+          <button id="snd" class="alt sndbtn">
+            <svg viewBox="0 0 24 24" id="sndi"></svg><span id="sndt"></span>
+          </button>
+          <div class="row">
+            <button id="resume">เล่นต่อ</button><button id="exit" class="alt">ออกไปหน้าแรก</button>
+          </div>
+        </div>
+      </div>
+      <div class="ov" id="ov"></div>
+    </div>
+    <script src="../icons.js"></script>
+    <script src="../char.js"></script>
+    <script src="../art.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
