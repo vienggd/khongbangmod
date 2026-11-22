@@ -403,8 +403,25 @@
       $("vsum").innerHTML = ICO.html("trophy", 28) + " สรุปทริป";
       $("vback").onclick = () => { if ($("ov").classList.contains("off")) leaveVillage(); };
       $("vsum").onclick = () => { if ($("ov").classList.contains("off")) summary(); };
+      // tapping a stop asks: just ride there, or ride there and play
       function go(k) {
         if (playing || !$("ov").classList.contains("off")) return;
+        const G = GAMES[k], here = Math.abs(cur - G.at) < 0.01;
+        card(`<h1>${ICO.html(G.ic, 38)} ${G.name}</h1>
+          <p style="margin:2px 0 10px">${here ? "คุณอยู่ที่นี่แล้ว" : "จะทำอะไรดี?"}${S.best[k] ? ` · สถิติ <b>${S.best[k]}</b>` : ""}</p>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch;max-width:260px;margin:0 auto">
+            <button id="gplay">${ICO.html("star", 24)} เล่นเกม</button>
+            ${here ? "" : `<button id="gride" class="alt">${ICO.html("bear", 24)} ปั่นไปที่นี่เฉยๆ</button>`}
+            <button id="okc" style="background:#bbb">ยกเลิก</button>
+          </div>`);
+        $("okc").onclick = closeCard;
+        $("gplay").onclick = () => { closeCard(); play(k); };
+        if ($("gride")) $("gride").onclick = () => {
+          closeCard(); playing = "ride";
+          ride(G.at, () => { playing = null; S.at = G.at; save(); toast("ถึง" + G.name + "แล้ว"); });
+        };
+      }
+      function play(k) {
         playing = k;
         ride(GAMES[k].at, () => {
           S.at = GAMES[k].at; save();
@@ -414,7 +431,7 @@
       }
       addEventListener("message", (e) => {
         const m = e.data || {};
-        if (!playing || !m.type) return;
+        if (!GAMES[playing] || !m.type) return;
         const k = playing;
         $("game").classList.add("off");
         $("game").innerHTML = "";
