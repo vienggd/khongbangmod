@@ -63,6 +63,33 @@
       .fact { background: #e9f6ff; border: 3px solid #9ed3f0; border-radius: 14px; padding: 8px 10px; margin: 8px 0; font-size: 16px; line-height: 1.25; text-align: left; }
       .fact b { color: #1f6e9a; }
       .stars { display: inline-flex; gap: 2px; vertical-align: middle; }
+      /* ---- village multiplayer UI ---- */
+      /* portrait phones: the village fills the whole screen (the camera just shows more map) */
+      @media (max-aspect-ratio: 2/3) { #wrap.full { top: 0; transform: none; height: 100%; aspect-ratio: auto; } }
+      #wrap.full #zoom { top: 58px; transform: none; }
+      #vbar button { white-space: nowrap; font-size: 18px; padding: 7px 16px; }
+      #online { left: 60px; top: 63px; font-size: 15px; padding: 3px 10px; white-space: nowrap; display: none; cursor: default; }
+      #online i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #bbb; margin-right: 5px; vertical-align: 0; border: 2px solid #4a3322; }
+      #online.on i { background: #3ccf6a; }
+      #online.wait i { background: #ffc82e; }
+      #vtools { position: absolute; right: 10px; bottom: 86px; display: none; flex-direction: column; gap: 10px; z-index: 3; }
+      #vtools button { width: 54px; height: 54px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #fffffff0; border: 3px solid #4a3322; border-bottom-width: 6px; }
+      #vtools svg { width: 28px; height: 28px; }
+      #micbtn.on { background: #3ccf6a; }
+      #micbtn.on svg path { fill: #fff; }
+      #micbtn .slash { display: block; }
+      #micbtn.on .slash { display: none; }
+      #chatbar { position: absolute; left: 10px; right: 10px; top: 56px; display: none; gap: 6px; z-index: 7; }
+      #chatbar.on { display: flex; }
+      #chatbar input { flex: 1; min-width: 0; font: inherit; font-size: 18px; font-weight: 600; padding: 6px 12px; border: 3px solid #4a3322; border-radius: 16px; color: #4a3322; background: #fff; outline: none; }
+      #chatbar button { font-size: 17px; padding: 4px 14px; border-bottom-width: 5px; }
+      #chatlog { position: absolute; left: 10px; bottom: 86px; max-width: calc(100% - 90px); display: flex; flex-direction: column; gap: 4px; z-index: 3; pointer-events: none; }
+      #chatlog div { background: #fffdf3e6; border: 2px solid #7a5230; border-radius: 12px; padding: 2px 10px; font-size: 15px; line-height: 1.25; transition: opacity 0.6s; overflow-wrap: anywhere; }
+      #chatlog b { color: #2a6f9a; }
+      #chatlog .me b { color: #c2521a; }
+      #chatlog .old { opacity: 0; }
+      #stick { position: absolute; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; background: #ffffff55; border: 3px solid #ffffffcc; box-shadow: 0 0 0 3px #4a332255; z-index: 3; pointer-events: none; display: none; }
+      #stick b { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: #fffdf3; border: 3px solid #4a3322; box-shadow: 0 3px 0 #00000030; }
     </style>
   </head>
   <body>
@@ -84,6 +111,14 @@
       <div id="bar"><button id="charbtn"></button><button id="shopbtn" class="alt"></button></div>
       <div id="zoom" style="display:none"><button id="zhelp" style="font-size:22px">?</button><button id="zin">+</button><button id="zout">&minus;</button></div>
       <div id="vbar" style="display:none"><button id="vback"></button><button id="vsum" class="alt"></button></div>
+      <div class="pill" id="online"><i></i><span></span></div>
+      <div id="chatlog"></div>
+      <div id="stick"><b></b></div>
+      <div id="vtools">
+        <button id="chatbtn" title="แชต"><svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="#5b4630"/></svg></button>
+        <button id="micbtn" title="ไมค์"><svg viewBox="0 0 24 24"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15zm6-3.5a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.9V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.6a6 6 0 0 0 5-5.9z" fill="#5b4630"/><path class="slash" d="M4 3l17 17" stroke="#e8553a" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+      </div>
+      <form id="chatbar" autocomplete="off"><input id="chatin" maxlength="100" placeholder="พิมพ์ข้อความ…" enterkeyhint="send" /><button type="submit">ส่ง</button></form>
       <div class="ov off" id="ov"><div class="card" id="card"></div></div>
       <div id="game" class="off"></div>
     </div>
@@ -92,6 +127,8 @@
     <script src="art.js"></script>
     <script src="mapart.js"></script>
     <script src="village.js"></script>
+    <script src="voice.js"></script>
+    <script src="net.js"></script>
     <script>
       const GAMES = {
         fish: { name: "ท่าตกปลา", ic: "fish", at: 0.3, coin: 1, url: (u) => "play/index.html?g=fish&up=" + u + "&c=" + encodeURIComponent(JSON.stringify(S.char)) },
@@ -212,9 +249,10 @@
       function riderLoop(now) {
         const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; curT += dt;
         const W = $("wrap").clientWidth, H = $("wrap").clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
-        if (rc.width !== W * dpr) { rc.width = W * dpr; rc.height = H * dpr; }
+        const cw = Math.round(W * dpr), chh = Math.round(H * dpr);
+        if (rc.width !== cw || rc.height !== chh) { rc.width = cw; rc.height = chh; }
         rg.setTransform(dpr, 0, 0, dpr, 0, 0);
-        if (bgc.width !== W * dpr) { bgc.width = W * dpr; bgc.height = H * dpr; }
+        if (bgc.width !== cw || bgc.height !== chh) { bgc.width = cw; bgc.height = chh; }
         bgg.setTransform(1, 0, 0, 1, 0, 0);
         bgg.clearRect(0, 0, bgc.width, bgc.height);
         rg.clearRect(0, 0, W, H);
@@ -307,13 +345,37 @@
       function card(html) { $("card").innerHTML = html; $("ov").classList.remove("off"); }
       const closeCard = () => $("ov").classList.add("off");
       let playing = null;
+      const myTotal = () => Object.keys(GAMES).reduce((t, k) => t + (S.best[k] || 0), 0);
+      if (!S.uid) { S.uid = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)); save(); }
       const V = makeVillage({
         onTalk: (id) => (id === "podium" ? summary() : say(id)), onExit: () => leaveVillage(),
-        // TODO online: replace SAMPLE_BOARD with scores from other players
+        // all-time top 3 from the host; offline it just shows you
         podium: () => {
-          const me = { name: S.name || "ฉัน", char: S.char, score: Object.keys(GAMES).reduce((t, k) => t + (S.best[k] || 0), 0), me: 1 };
-          return [me, { name: "น้องแมว", char: CH_PRESETS[1], score: 48 }, { name: "น้องกบ", char: CH_PRESETS[3], score: 30 }].sort((x, y) => y.score - x.score);
+          const b = NET.board();
+          if (b) return b.map((e) => ({ name: e.n, score: e.s, char: e.c && e.c.skin ? e.c : CH_PRESETS[0], me: e.n === (S.name || "") && e.s === myTotal() }));
+          return [{ name: S.name || "ฉัน", char: S.char, score: myTotal(), me: 1 }];
         },
+        others: () => NET.view(curT),
+        mine: () => NET.mine(),
+      });
+      const NET = makeNet({
+        getMe: () => V.me(),
+        onStatus(st, n) {
+          const el = $("online");
+          el.className = "pill " + (st === "online" ? "on" : st === "connecting" ? "wait" : "");
+          el.querySelector("span").textContent = st === "online" ? n + " คนออนไลน์" : st === "connecting" ? "กำลังเชื่อมต่อ…" : st === "full" ? "ห้องเต็ม" : "ออฟไลน์";
+          if (st !== "online" && NET && !NET.micOn()) $("micbtn").classList.remove("on");
+        },
+        onChat(name, text, mine) {
+          const log = $("chatlog"), d = document.createElement("div");
+          d.className = mine ? "me" : "";
+          d.innerHTML = `<b>${esc(name)}</b> ${esc(text)}`;
+          log.appendChild(d);
+          while (log.children.length > 4) log.firstChild.remove();
+          setTimeout(() => d.classList.add("old"), 9000);
+          setTimeout(() => d.remove(), 9700);
+        },
+        onBoard() {},
       });
       function setScene(sc) {
         scene = sc;
@@ -323,6 +385,11 @@
         $("bar").style.display = v ? "none" : "";
         $("vbar").style.display = v ? "" : "none";
         $("zoom").style.display = v ? "flex" : "none";
+        $("vtools").style.display = v ? "flex" : "none";
+        $("wrap").classList.toggle("full", v);
+        $("online").style.display = v ? "block" : "none";
+        $("chatlog").style.display = v ? "flex" : "none";
+        if (!v) { closeChat(); stickEnd(); V.setMove(0, 0); keys.clear(); }
         $("say").classList.remove("on"); talk = null;
       }
       function goGate() {
@@ -333,7 +400,11 @@
       }
       function enterVillage() {
         const f = $("fade"); f.style.opacity = 1;
-        setTimeout(() => { setScene("village"); V.enter(); f.style.opacity = 0; if (!S.vhelp) { S.vhelp = 1; save(); setTimeout(villageHelp, 400); } else toast("แตะพื้นเพื่อเดิน แตะน้ำเพื่อพายเรือ"); }, 450);
+        setTimeout(() => {
+          setScene("village"); V.enter(); f.style.opacity = 0;
+          NET.connect({ id: S.uid, n: S.name || "", c: S.char, s: myTotal() });
+          if (!S.vhelp2) { S.vhelp2 = 1; save(); setTimeout(villageHelp, 400); } else toast("ลากเพื่อเดิน · แตะเพื่อไปตรงนั้น");
+        }, 450);
       }
       function settings() {
         card(`<h1 style="font-size:28px">ตั้งค่า</h1>
@@ -354,10 +425,13 @@
         const li = (t) => `<li style="margin:5px 0">${t}</li>`;
         card(`<h1 style="font-size:26px">ย่านชุมชนริมคลอง</h1><p style="margin:0;font-size:15px;opacity:.75">ที่นี่เดินเล่นได้อิสระ ทำได้ดังนี้</p>
           <ul style="text-align:left;font-size:16px;line-height:1.25;padding-left:20px;margin:8px 0">
-            ${li("<b>แตะพื้น</b> เพื่อเดินไปตรงนั้น")}
-            ${li("<b>แตะแม่น้ำ</b> เพื่อลงเรือพายเล่น แตะฝั่งเพื่อขึ้นเรือ")}
+            ${li("<b>ลากนิ้วค้างไว้</b> (จอยสติก) หรือกด <b>W A S D / ลูกศร</b> เพื่อเดิน")}
+            ${li("<b>แตะพื้น</b> เพื่อเดินไปตรงนั้นเอง")}
+            ${li("<b>แตะแม่น้ำ</b> หรือเดินลงน้ำ เพื่อพายเรือ แตะฝั่งเพื่อขึ้นบก")}
+            ${li("<b>เพื่อนที่ออนไลน์</b> จะเห็นกันในแผนที่นี้ กดปุ่ม <b>แชต</b> เพื่อพิมพ์ (หรือกด Enter)")}
+            ${li("กดปุ่ม <b>ไมค์</b> เพื่อคุยด้วยเสียงกับคนที่อยู่ใกล้ๆ ยิ่งห่างเสียงยิ่งเบา (ใช้หูฟังจะชัดที่สุด)")}
             ${li("<b>แตะคน วัด มัสยิด แผงตลาด</b> ที่มีฟองแชต เพื่อคุยและอ่านเรื่องราวชุมชน")}
-            ${li("<b>แตะโพเดียม</b> เพื่อดูอันดับคะแนน")}
+            ${li("<b>แตะโพเดียม</b> กลางลาน เพื่อดูอันดับคะแนน")}
             ${li("<b>ปุ่ม + และ −</b> หรือใช้สองนิ้วถ่าง เพื่อซูมเข้าออก")}
             ${li("<b>แตะประตูทางกลับ</b> หรือปุ่มด้านล่าง เพื่อกลับไปปั่นจักรยาน")}
           </ul><button id="okc">เข้าใจแล้ว</button>`);
@@ -365,29 +439,82 @@
       }
       function leaveVillage() {
         const f = $("fade"); f.style.opacity = 1;
+        NET.disconnect(); $("micbtn").classList.remove("on");
         setTimeout(() => { setScene("map"); place(1); f.style.opacity = 0; }, 450);
       }
+      // ---- village input: floating joystick (drag), tap-to-walk, pinch zoom, keyboard ----
+      const keys = new Set();
+      let stickOn = false;
+      function stickEnd() { stickOn = false; $("stick").style.display = "none"; V.setMove(0, 0); }
+      function keyMove() {
+        if (stickOn) return;
+        const x = (keys.has("r") ? 1 : 0) - (keys.has("l") ? 1 : 0), y = (keys.has("d") ? 1 : 0) - (keys.has("u") ? 1 : 0), m = Math.hypot(x, y) || 1;
+        V.setMove(x / m, y / m);
+      }
+      const KEYMAP = { KeyW: "u", ArrowUp: "u", KeyS: "d", ArrowDown: "d", KeyA: "l", ArrowLeft: "l", KeyD: "r", ArrowRight: "r" };
+      addEventListener("keydown", (e) => {
+        if (scene !== "village" || !$("ov").classList.contains("off")) return;
+        if (document.activeElement === $("chatin")) { if (e.key === "Escape") closeChat(); return; }
+        if (e.key === "Enter") { e.preventDefault(); openChat(); return; }
+        const k = KEYMAP[e.code];
+        if (k) { e.preventDefault(); keys.add(k); keyMove(); }
+      });
+      addEventListener("keyup", (e) => { const k = KEYMAP[e.code]; if (k && keys.delete(k)) keyMove(); });
+      addEventListener("blur", () => { keys.clear(); keyMove(); });
+      function openChat() {
+        if (!NET.online()) { toast("ยังไม่ได้เชื่อมต่อเซิร์ฟเวอร์"); return; }
+        keys.clear(); keyMove();
+        $("chatbar").classList.add("on");
+        $("chatin").focus();
+      }
+      function closeChat() { $("chatbar").classList.remove("on"); $("chatin").blur(); }
+      $("chatbar").addEventListener("submit", (e) => { e.preventDefault(); NET.chat($("chatin").value); $("chatin").value = ""; closeChat(); });
+      $("chatbtn").onclick = () => ($("chatbar").classList.contains("on") ? closeChat() : openChat());
+      $("micbtn").onclick = async () => {
+        if (!NET.online()) { toast("ยังไม่ได้เชื่อมต่อเซิร์ฟเวอร์"); return; }
+        if (!window.isSecureContext || !navigator.mediaDevices) { toast("ไมค์ใช้ได้เฉพาะลิงก์ https"); return; }
+        const want = !NET.micOn();
+        try { await NET.mic(want); $("micbtn").classList.toggle("on", want); toast(want ? "เปิดไมค์แล้ว คนที่อยู่ใกล้จะได้ยิน" : "ปิดไมค์แล้ว"); }
+        catch (err) { $("micbtn").classList.remove("on"); toast("ใช้ไมค์ไม่ได้ ลองอนุญาตไมค์ในเบราว์เซอร์"); }
+      };
       {
         const ptrs = new Map();
-        let pinch = 0, moved = 0, t0 = 0;
-        const W2 = $("wrap");
-        const skip = (e) => e.target.closest("button,#say,.ov,.pill");
+        let pinch = 0, moved = 0, t0 = 0, sx = 0, sy = 0;
+        const W2 = $("wrap"), R = 48;
+        const skip = (e) => e.target.closest("button,#say,.ov,.pill,#chatbar,input");
         W2.addEventListener("pointerdown", (e) => {
           if (scene !== "village" || skip(e)) return;
+          NET.unlock();
+          if (document.activeElement === $("chatin")) closeChat();
           ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-          if (ptrs.size === 1) { moved = 0; t0 = performance.now(); }
-          if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); moved = 99; }
+          try { W2.setPointerCapture(e.pointerId); } catch (err) {} // keep the joystick alive if the finger leaves the game area
+          if (ptrs.size === 1) { moved = 0; t0 = performance.now(); sx = e.clientX; sy = e.clientY; }
+          if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); moved = 99; stickEnd(); }
         });
         W2.addEventListener("pointermove", (e) => {
           if (!ptrs.has(e.pointerId)) return;
           const o = ptrs.get(e.pointerId); moved += Math.abs(e.clientX - o[0]) + Math.abs(e.clientY - o[1]);
           ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-          if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) V.zoomBy(d / pinch); pinch = d; }
+          if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) V.zoomBy(d / pinch); pinch = d; return; }
+          if (ptrs.size !== 1 || moved === 99) return;
+          let dx = e.clientX - sx, dy = e.clientY - sy;
+          if (!stickOn && Math.hypot(dx, dy) > 12) { // drag = joystick, anchored where the finger went down
+            stickOn = true;
+            const r = W2.getBoundingClientRect(), st = $("stick");
+            st.style.left = sx - r.left + "px"; st.style.top = sy - r.top + "px"; st.style.display = "block";
+          }
+          if (stickOn) {
+            const d = Math.hypot(dx, dy);
+            if (d > R) { sx += (dx / d) * (d - R); sy += (dy / d) * (d - R); dx = e.clientX - sx; dy = e.clientY - sy; const r = W2.getBoundingClientRect(); $("stick").style.left = sx - r.left + "px"; $("stick").style.top = sy - r.top + "px"; }
+            $("stick").firstChild.style.transform = `translate(${dx}px,${dy}px)`;
+            V.setMove(dx / R, dy / R);
+          }
         });
         const up = (e) => {
           if (!ptrs.has(e.pointerId)) return;
           const wasOne = ptrs.size === 1; ptrs.delete(e.pointerId);
-          if (wasOne && moved < 10 && performance.now() - t0 < 600 && scene === "village" && e.type === "pointerup") {
+          if (stickOn && !ptrs.size) { stickEnd(); keyMove(); }
+          else if (wasOne && moved < 12 && performance.now() - t0 < 600 && scene === "village" && e.type === "pointerup") {
             const r = W2.getBoundingClientRect(), k = r.width / 420;
             V.tap((e.clientX - r.left) / k, (e.clientY - r.top) / k);
           }
@@ -399,8 +526,8 @@
         $("zin").onclick = () => V.zoomBy(1.25);
         $("zout").onclick = () => V.zoomBy(0.8);
       }
-      $("vback").innerHTML = ICO.html("bear", 28) + " กลับไปปั่นจักรยาน";
-      $("vsum").innerHTML = ICO.html("trophy", 28) + " สรุปทริป";
+      $("vback").innerHTML = ICO.html("bear", 26) + " กลับไปปั่น";
+      $("vsum").innerHTML = ICO.html("trophy", 26) + " สรุปทริป";
       $("vback").onclick = () => { if ($("ov").classList.contains("off")) leaveVillage(); };
       $("vsum").onclick = () => { if ($("ov").classList.contains("off")) summary(); };
       // tapping a stop asks: just ride there, or ride there and play
