@@ -10,6 +10,8 @@ const VSAY = {
   v_boat: ["ป้าก๋วยเตี๋ยวเรือ", ["ก๋วยเตี๋ยวเรือร้อนๆ จ้า ขายบนเรือริมคลองกันมานานแล้ว", "ถ้าอยากช่วยป้าเสิร์ฟ กลับไปเล่นที่ตลาดเรือได้นะ"]],
   v_house: ["บ้านริมคลอง", ["บ้านใต้ถุนสูง กันน้ำขึ้นได้ และใช้ใต้ถุนเป็นที่นั่งเล่น ทำงานจักสาน หรือเก็บของ"]],
 };
+// the team behind the game (f = female); shown as statues beside the north plaza
+const MAKERS = [["Vieng"], ["Yok", 1], ["Cent"], ["Nine"], ["Gus", 1], ["Pakwarn", 1], ["Phukao"], ["Jeeno"], ["Poarch"]];
 function makeVillage(cb) {
   // world is big enough for 20-30 players at once: x -560..980, y -300..900
   // ground texture resolution: lower on low-memory phones
@@ -82,8 +84,8 @@ function makeVillage(cb) {
   [[-95, 236], [470, 236], [545, 246], [-190, 240], [-420, 236], [-510, 248], [600, 240], [790, 236], [900, 246]].forEach(house);
   [[350, 536], [-110, 545], [545, 548], [-230, 548], [-440, 552], [740, 546], [890, 552]].forEach(house);
   const tree = ([x, y, s]) => add(x, y, (q, a, b) => artTree(q, a, b, s, 0, true), 70, 130, null);
-  [[-150, 215, 0.85], [430, 208, 0.85], [-120, 70, 0.8], [520, 70, 0.8], [-100, 610, 0.8], [500, 640, 0.8], [570, 520, 0.8]].forEach(tree);
-  [[-470, -250, 0.75], [-80, -250, 0.7], [500, -250, 0.75], [860, -250, 0.8], [-480, -100, 0.8], [-420, 80, 0.8], [-170, -90, 0.75], [870, -70, 0.8], [800, 110, 0.75], [560, -90, 0.8], [-350, -40, 0.7], [760, -130, 0.7]].forEach(tree);
+  [[-150, 215, 0.85], [430, 208, 0.85], [-120, 70, 0.8], [-100, 610, 0.8], [500, 640, 0.8], [570, 520, 0.8]].forEach(tree);
+  [[-470, -250, 0.75], [-80, -250, 0.7], [500, -250, 0.75], [860, -250, 0.8], [-480, -100, 0.8], [-420, 80, 0.8], [-170, -90, 0.75], [870, -70, 0.8], [800, 110, 0.75], [-350, -40, 0.7], [760, -130, 0.7]].forEach(tree);
   [[-320, 740, 0.8], [-490, 660, 0.8], [-420, 840, 0.75], [-120, 840, 0.7], [600, 790, 0.75], [770, 670, 0.8], [910, 780, 0.8], [520, 860, 0.7]].forEach(tree);
   [[-30, 238], [-330, 620], [840, 700], [-360, 150]].forEach(([x, y]) => add(x, y, (q, a, b) => artVegPlot(q, a, b, 0.85), 80, 70, null));
   [[-40, 150], [450, 140], [-60, 650], [460, 760], [-200, 880], [640, 880]].forEach(([x, y]) => add(x, y, (q, a, b) => artBush(q, a, b, 0.8), 40, 40, null, 8));
@@ -115,6 +117,34 @@ function makeVillage(cb) {
   const POD = { x: PLAZAS[0].x, y: PLAZAS[0].y + 40 };
   obs.push({ x: POD.x, y: POD.y - 12, rx: 80, ry: 12 });
   ents.push({ id: "podium", hx: POD.x, hy: POD.y - 60, r: 80, sx: POD.x, sy: POD.y + 26 });
+  // makers' corner: stone statues of the 9 team members + a sign that opens the poster
+  const STONE = { skin: "#b8bcc6", belly: "#d3d6dd", inner: "#a3a7b1", shoe: "#9599a3", face: "#cdd0d7", hair: "#8a8e98" };
+  const KINDS = ["bear", "cat", "bunny", "frog", "pig"];
+  const bow = (q, x, y, s) => {
+    q.beginPath(); q.moveTo(x, y); q.lineTo(x - s * 1.6, y - s); q.lineTo(x - s * 1.6, y + s); q.closePath();
+    q.moveTo(x, y); q.lineTo(x + s * 1.6, y - s); q.lineTo(x + s * 1.6, y + s); q.closePath(); artOutlineFill(q, "#ff8fb3", 2);
+    q.beginPath(); q.arc(x, y, s * 0.55, 0, 7); artOutlineFill(q, "#ff6f9c", 2);
+  };
+  const statue = (q, a, b, [name, f], i) => {
+    q.beginPath(); q.roundRect(a - 24, b - 20, 48, 20, 4); artOutlineFill(q, "#c9b48a", 3);
+    q.beginPath(); q.roundRect(a - 28, b - 26, 56, 8, 3); artOutlineFill(q, "#dccaa0", 3);
+    q.fillStyle = ART_OUT; q.font = "800 12px Athiti, system-ui"; q.textAlign = "center"; q.textBaseline = "middle"; q.fillText(name, a, b - 9);
+    drawChibi(q, a, b - 26, 17, Object.assign({ k: KINDS[i % KINDS.length] }, STONE), { t: 0 });
+    if (f) bow(q, a + 10, b - 26 - 50, 5);
+  };
+  MAKERS.forEach((m, i) => {
+    const back = i < 5, x = back ? 460 + i * 50 : 485 + (i - 5) * 50, y = back ? -150 : -40;
+    add(x, y, (q, a, b) => statue(q, a, b, m, i), 36, 104, [x, y - 4, 18, 6], 6);
+    ents.push({ id: "maker:" + m[0], hx: x, hy: y - 45, r: 26, sx: x, sy: y + 16 });
+  });
+  const sign = (q, a, b) => {
+    [-34, 34].forEach((px) => { q.beginPath(); q.roundRect(a + px - 3, b - 46, 6, 46, 2); artOutlineFill(q, "#a8703a", 2.4); });
+    q.beginPath(); q.roundRect(a - 48, b - 92, 96, 54, 8); artOutlineFill(q, "#fff3dc", 3.2);
+    q.fillStyle = "#c2521a"; q.font = "800 15px Athiti, system-ui"; q.textAlign = "center"; q.textBaseline = "middle"; q.fillText("ทีมผู้สร้างเกม", a, b - 77);
+    q.fillStyle = ART_OUT; q.font = "700 12px Athiti, system-ui"; q.fillText("Group INT36-2", a, b - 60); q.fillText("แตะดูโปสเตอร์", a, b - 46);
+  };
+  add(560, 95, sign, 54, 96, [560, 91, 36, 6], 6);
+  ents.push({ id: "poster", hx: 560, hy: 15, r: 50, sx: 560, sy: 117, talk: 1 });
   // ---------- player ----------
   const START = { x: 210, y: 640 };
   const P = { x: START.x, y: START.y, vx: 0, vy: 0, path: [], walking: 0, ph: 0, pend: null, blocked: 0, dir: 1, boat: 0, wet: 0 };

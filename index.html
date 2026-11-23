@@ -244,7 +244,7 @@
         })(t0);
       }
       // rider overlay
-      const rc = $("rider"), rg = rc.getContext("2d");
+      const rc = $("rider"), rg = rc.getContext("2d"), gameEl = $("game");
       let lastT = performance.now();
       function riderLoop(now) {
         const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; curT += dt;
@@ -257,6 +257,8 @@
         bgg.clearRect(0, 0, bgc.width, bgc.height);
         rg.clearRect(0, 0, W, H);
         if (scene === "village") { V.update(dt); V.draw(bgg, curT, (W * dpr) / 420, S.char, S.name); requestAnimationFrame(riderLoop); return; }
+        if (gameEl.childElementCount) { requestAnimationFrame(riderLoop); return; } // a mini-game covers the map: don't draw it
+
         mapDraw(bgg, curT, (W * dpr) / 420);
         const k = W / 420;
         if (moving) ph += dt * 11;
@@ -347,8 +349,10 @@
       let playing = null;
       const myTotal = () => Object.keys(GAMES).reduce((t, k) => t + (S.best[k] || 0), 0);
       if (!S.uid) { S.uid = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)); save(); }
-      const V = makeVillage({
-        onTalk: (id) => (id === "podium" ? summary() : say(id)), onExit: () => leaveVillage(),
+      // the village (and its ~30 MB ground image) is built on first visit, not on page load
+      let V = null;
+      const VOPTS = {
+        onTalk: (id) => (id === "podium" ? summary() : id === "poster" || id.startsWith("maker:") ? poster(id.slice(6)) : say(id)), onExit: () => leaveVillage(),
         // all-time top 3 from the host; offline it just shows you
         podium: () => {
           const b = NET.board();
@@ -357,7 +361,14 @@
         },
         others: () => NET.view(curT),
         mine: () => NET.mine(),
-      });
+      };
+      function poster(who) {
+        card(`<h1 style="font-size:26px">${who ? esc(who) : "ทีมผู้สร้างเกม"}</h1>
+          <p style="margin:0 0 8px;font-size:15px">${who ? "หนึ่งในทีมผู้สร้างเกมนี้ · " : ""}Group INT36-2 · GEN241 Beauty of Life</p>
+          <img src="play/assets/game/poster.webp" alt="โปสเตอร์ Mod Rim Klong" style="width:100%;border-radius:12px;border:3px solid #e3cfa8;display:block">
+          <button id="okc" style="margin-top:10px">ปิด</button>`);
+        $("okc").onclick = closeCard;
+      }
       const NET = makeNet({
         getMe: () => V.me(),
         onStatus(st, n) {
@@ -389,7 +400,7 @@
         $("wrap").classList.toggle("full", v);
         $("online").style.display = v ? "block" : "none";
         $("chatlog").style.display = v ? "flex" : "none";
-        if (!v) { closeChat(); stickEnd(); V.setMove(0, 0); keys.clear(); }
+        if (!v) { closeChat(); stickEnd(); keys.clear(); }
         $("say").classList.remove("on"); talk = null;
       }
       function goGate() {
@@ -401,6 +412,7 @@
       function enterVillage() {
         const f = $("fade"); f.style.opacity = 1;
         setTimeout(() => {
+          V = V || makeVillage(VOPTS);
           setScene("village"); V.enter(); f.style.opacity = 0;
           NET.connect({ id: S.uid, n: S.name || "", c: S.char, s: myTotal() });
           if (!S.vhelp2) { S.vhelp2 = 1; save(); setTimeout(villageHelp, 400); } else toast("ลากเพื่อเดิน · แตะเพื่อไปตรงนั้น");
@@ -409,10 +421,12 @@
       function settings() {
         card(`<h1 style="font-size:28px">ตั้งค่า</h1>
           <p style="font-size:15px;opacity:.75;margin:0 0 6px">${S.name ? "ผู้เล่น: " + esc(S.name) : ""}</p>
+          <button id="rep" class="alt" style="width:100%;margin:6px 0">แจ้งปัญหา</button>
           <button id="rst" class="red" style="width:100%;margin:6px 0">เริ่มเกมใหม่ทั้งหมด</button>
           <p style="font-size:14px;opacity:.65;margin:0 0 8px">ลบคะแนน ตรา ของที่ระลึก ของอัปเกรด และตัวละคร แล้วเริ่มตั้งแต่ต้น</p>
           <button id="okc">ปิด</button>`);
         $("okc").onclick = closeCard;
+        $("rep").onclick = report;
         $("rst").onclick = () => {
           card(`<h1 style="font-size:26px">แน่ใจนะ?</h1><p style="margin:4px 0 10px">ข้อมูลทั้งหมดจะหายและย้อนกลับไม่ได้</p>
             <div style="display:flex;gap:8px;justify-content:center"><button id="rst2" class="red">เริ่มใหม่เลย</button><button id="okc" class="alt">ยกเลิก</button></div>`);
@@ -420,7 +434,26 @@
           $("rst2").onclick = () => { try { localStorage.removeItem("kbm"); } catch (e) {} location.reload(); };
         };
       }
-      $("setbtn").onclick = () => { if (!playing && $("ov").classList.contains("off")) settings(); };
+      function report() {
+        card(`<h1 style="font-size:26px">แจ้งปัญหา</h1>
+          <p style="margin:0 0 6px;font-size:15px">เล่าว่าเกิดอะไรขึ้น ทีมจะได้แก้ไข (ข้อมูลอุปกรณ์จะแนบไปให้อัตโนมัติ)</p>
+          <textarea id="repm" maxlength="500" rows="5" placeholder="เช่น กดปุ่มไมค์แล้วไม่มีเสียง ใช้ iPhone" style="width:100%;font:inherit;font-size:17px;padding:8px 10px;border:3px solid #e3cfa8;border-radius:14px;color:#4a3322;background:#fff;outline:none;resize:none"></textarea>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:8px"><button id="reps">ส่ง</button><button id="okc" class="alt">ยกเลิก</button></div>`);
+        $("okc").onclick = closeCard;
+        $("repm").focus();
+        $("reps").onclick = async () => {
+          const m = $("repm").value.trim();
+          if (!m) { $("repm").focus(); return; }
+          $("reps").disabled = true;
+          const info = { ua: navigator.userAgent, screen: innerWidth + "x" + innerHeight + "@" + devicePixelRatio, scene, online: NET.online(), players: NET.count(), name: S.name || "" };
+          try {
+            const r = await fetch("report", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ m, info }) });
+            if (!r.ok) throw 0;
+            closeCard(); toast("ส่งแล้ว ขอบคุณที่ช่วยแจ้ง!");
+          } catch (e) { $("reps").disabled = false; toast("ส่งไม่สำเร็จ ลองใหม่อีกครั้ง"); }
+        };
+      }
+      $("setbtn").onclick =() => { if (!playing && $("ov").classList.contains("off")) settings(); };
       function villageHelp() {
         const li = (t) => `<li style="margin:5px 0">${t}</li>`;
         card(`<h1 style="font-size:26px">ย่านชุมชนริมคลอง</h1><p style="margin:0;font-size:15px;opacity:.75">ที่นี่เดินเล่นได้อิสระ ทำได้ดังนี้</p>
@@ -445,9 +478,9 @@
       // ---- village input: floating joystick (drag), tap-to-walk, pinch zoom, keyboard ----
       const keys = new Set();
       let stickOn = false;
-      function stickEnd() { stickOn = false; $("stick").style.display = "none"; V.setMove(0, 0); }
+      function stickEnd() { stickOn = false; $("stick").style.display = "none"; if (V) V.setMove(0, 0); }
       function keyMove() {
-        if (stickOn) return;
+        if (stickOn || !V) return;
         const x = (keys.has("r") ? 1 : 0) - (keys.has("l") ? 1 : 0), y = (keys.has("d") ? 1 : 0) - (keys.has("u") ? 1 : 0), m = Math.hypot(x, y) || 1;
         V.setMove(x / m, y / m);
       }

@@ -19,7 +19,7 @@ const MAX_PLAYERS = 40;
 const TICK_MS = 100; // 10 position updates a second is plenty with client-side interpolation
 
 // ---------- static files ----------
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg", ".mp3": "audio/mpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".webp": "image/webp", ".jpg": "image/jpeg", ".mp3": "audio/mpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json" };
 const BLOCK = /^(server|\.git|\.claude|node_modules)(\/|$)|(^|\/)\./;
 const cache = new Map(); // path -> { mtime, raw, gz, type }
 function load(file) {
@@ -36,6 +36,7 @@ function serve(req, res) {
   let rel;
   try { rel = decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/^\/+/, ""); } catch { res.writeHead(400).end(); return; }
   if (rel === "" || rel.endsWith("/")) rel += "index.html";
+  if (rel === "report" && req.method === "POST") return takeReport(req, res);
   if (rel === "health") { res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ ok: 1, players: players.size })); return; }
   const file = path.resolve(ROOT, rel), relN = path.relative(ROOT, file).split(path.sep).join("/");
   if (!file.startsWith(ROOT + path.sep) || BLOCK.test(relN) || !TYPES[path.extname(file).toLowerCase()]) { res.writeHead(404).end("not found"); return; }
@@ -51,6 +52,33 @@ function serve(req, res) {
     "content-length": (gz ? ent.gz : ent.raw).length,
   });
   res.end(req.method === "HEAD" ? undefined : gz ? ent.gz : ent.raw);
+}
+
+// ---------- problem reports: appended to data/reports.jsonl and printed in the host window ----------
+const REPORTS = path.join(__dirname, "data", "reports.jsonl");
+const reportHits = new Map(); // sender -> count this hour
+setInterval(() => reportHits.clear(), 3600e3).unref();
+function takeReport(req, res) {
+  // behind Tailscale Funnel every request comes from 127.0.0.1, so key on the forwarded address when present
+  const who = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress).split(",")[0].trim();
+  const n = (reportHits.get(who) || 0) + 1;
+  reportHits.set(who, n);
+  // shortcut: without a forwarded address all players share one bucket, so it is roomier; tighten if spammed
+  if (n > (req.headers["x-forwarded-for"] ? 5 : 60) || reportHits.size > 500) { res.writeHead(429).end(); return; }
+  let body = "";
+  req.setEncoding("utf8");
+  req.on("data", (c) => { body += c; if (body.length > 4096) { res.writeHead(413).end(); req.destroy(); } });
+  req.on("end", () => {
+    if (res.writableEnded) return;
+    let m;
+    try { m = JSON.parse(body); } catch { res.writeHead(400).end(); return; }
+    const info = m && typeof m.info === "object" && m.info ? m.info : {};
+    const rec = { at: new Date().toISOString(), m: text(m && m.m, 500), ua: text(info.ua, 300), screen: text(info.screen, 30), scene: text(info.scene, 12), online: !!info.online, players: num(info.players, 0, 999), name: text(info.name, 12) };
+    if (!rec.m) { res.writeHead(400).end(); return; }
+    fs.appendFile(REPORTS, JSON.stringify(rec) + "\n", () => {});
+    console.log(`[report] ${rec.at} ${rec.name || "-"} (${rec.screen}, ${rec.scene}): ${rec.m}`);
+    res.writeHead(204).end();
+  });
 }
 
 // ---------- leaderboard (all-time best total per player) ----------
